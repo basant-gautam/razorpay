@@ -7,6 +7,7 @@ export default function OrdersView({ user }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  if (!user || !user.token) return <div className="p-8 text-center text-sm" style={{color:'var(--color-text-muted)'}}>Please sign in again</div>
   const isMerchant = user.role === 'merchant'
   const endpoint = isMerchant ? `${API}/api/admin/orders` : `${API}/api/orders/${user.username}`
 

@@ -360,20 +360,17 @@ function Sidebar({ user, activeTab, onTabChange, onLogout, onClose }) {
     { id: 'orders', label: 'My Orders', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
     { id: 'profile', label: 'Profile', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
   ]
-  const items = user.role === 'merchant' ? merchantItems : buyerItems
+  const items = user?.role === 'merchant' ? merchantItems : buyerItems
 
-  useEffect(() => {
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = prev }
-  }, [])
+  // Don't lock body scroll - fixed sidebar already overlays without needing overflow hidden
 
+  if (!user) return null
   return (
     <>
-      <div className="fixed inset-0 backdrop-blur-sm" style={{ background: 'rgba(5, 3, 12, 0.75)', zIndex: 'var(--z-sidebar-backdrop)' }} onClick={onClose} aria-hidden="true" />
+      <div className="fixed inset-0 backdrop-blur-sm" style={{ background: 'rgba(5, 3, 12, 0.75)', zIndex: 40 }} onClick={onClose} aria-hidden="true" />
       <aside className="fixed top-0 left-0 h-full flex flex-col animate-slide-in gradient-ornament-border overflow-hidden"
         style={{
-          zIndex: 'var(--z-sidebar)',
+          zIndex: 50,
           width: 'min(320px, 85vw)',
           background: 'linear-gradient(180deg, #191330 0%, #151025 100%)',
           borderRight: '1px solid var(--color-border)',
@@ -386,17 +383,17 @@ function Sidebar({ user, activeTab, onTabChange, onLogout, onClose }) {
             <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shadow-lg"
               style={{
                 fontFamily: 'var(--font-serif)',
-                background: user.role === 'merchant'
+                background: (user?.role === 'merchant')
                   ? 'linear-gradient(135deg, #4a1a30, #2a1020)'
                   : 'linear-gradient(135deg, #2a1a3a, #1a1030)',
-                color: user.role === 'merchant' ? 'var(--color-copper)' : 'var(--color-gold)',
+                color: (user?.role === 'merchant') ? 'var(--color-copper)' : 'var(--color-gold)',
               }}
               aria-hidden="true">
-              {user.username[0].toUpperCase()}
+              {(user?.username?.[0] || 'U').toUpperCase()}
             </div>
             <div>
-              <p className="text-sm font-medium" style={{ color: 'var(--color-cream)', fontFamily: 'var(--font-serif)' }}>{user.username}</p>
-              <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--color-text-dim)', fontFamily: 'var(--font-sans)' }}>{user.role}</p>
+              <p className="text-sm font-medium" style={{ color: 'var(--color-cream)', fontFamily: 'var(--font-serif)' }}>{user?.username}</p>
+              <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--color-text-dim)', fontFamily: 'var(--font-sans)' }}>{user?.role}</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg transition-colors"
