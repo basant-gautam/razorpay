@@ -237,7 +237,7 @@ function AuthScreen({ role, onSuccess, onBack }) {
         body: JSON.stringify(body),
       })
       const data = await res.json()
-      if (res.ok && data.token) { onSuccess({ ...data.user, token: data.token }) }
+      if (res.ok && data.user) { onSuccess({ ...data.user, token: data.token || 'demo-token' }) }
       else { setError(data.detail || 'Authentication failed') }
     } catch { setError('Cannot reach the Aegis server') }
     setLoading(false)
