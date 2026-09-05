@@ -656,11 +656,6 @@ function PlaceholderPanel({ title, icon }) {
 function DashboardLayout({ user, onLogout }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [activeTab, setActiveTab] = useState(user?.role === 'merchant' ? 'dashboard' : 'shop')
-  // Reset to valid tab if role mismatch after long chat
-  useEffect(() => {
-    if (user?.role === 'buyer' && !['shop','orders','profile'].includes(activeTab)) setActiveTab('shop')
-    if (user?.role === 'merchant' && !['dashboard','orders','audit-logs','catalog'].includes(activeTab)) setActiveTab('dashboard')
-  }, [user, activeTab])
 
   const renderPanel = () => {
     try {
