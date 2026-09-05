@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import AdminDashboard from './AdminDashboard'
 import CatalogManager from './CatalogManager'
 import OrdersView from './OrdersView'
@@ -29,13 +29,6 @@ function parseMessage(content) {
   const tail = content.slice(idx + link.length)
   if (tail) parts.push({ text: tail })
   return parts
-}
-
-class ErrorBoundary extends React.Component {
-  constructor(p){ super(p); this.state={hasError:false, error:null}}
-  static getDerivedStateFromError(e){ return {hasError:true, error:e}}
-  componentDidCatch(e, info){ console.error('UI crash', e, info)}
-  render(){ if(this.state.hasError) return <div className="p-8 text-center text-sm" style={{color:'var(--color-error)'}}>Something broke: {String(this.state.error?.message||this.state.error)} <button onClick={()=>this.setState({hasError:false})} className="underline ml-2">Retry</button></div>; return this.props.children }
 }
 
 function OrnamentalDivider() {
@@ -748,10 +741,10 @@ function DashboardLayout({ user, onLogout }) {
       </header>
 
       {sidebarOpen && (
-        <ErrorBoundary><Sidebar user={user} activeTab={activeTab} onTabChange={setActiveTab} onLogout={onLogout} onClose={() => setSidebarOpen(false)} /></ErrorBoundary>
+        <Sidebar user={user} activeTab={activeTab} onTabChange={setActiveTab} onLogout={onLogout} onClose={() => setSidebarOpen(false)} />
       )}
 
-      <ErrorBoundary>{renderPanel()}</ErrorBoundary>
+      {renderPanel()}
     </div>
   )
 }
