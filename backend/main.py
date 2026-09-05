@@ -625,7 +625,8 @@ def agent_chat(request: AgentChatRequest, db: Session = Depends(get_db), buyer: 
                 if result["status"] == "success":
                     return {
                         "reply": (
-                            f"Your secure Razorpay payment link is ready: {result['payment_link']}\n\n"
+                            f"Your secure Razorpay payment link is ready: {result['payment_link']}\n"
+                            f"[payment_link_id:{result['payment_link_id']}]\n\n"
                             "Once payment is complete, type 'invoice please' and I will verify it and issue your invoice."
                         )
                     }

@@ -365,8 +365,9 @@ function Sidebar({ user, activeTab, onTabChange, onLogout, onClose }) {
   const items = user.role === 'merchant' ? merchantItems : buyerItems
 
   useEffect(() => {
+    const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = '' }
+    return () => { document.body.style.overflow = prev }
   }, [])
 
   return (
@@ -530,7 +531,14 @@ function ShopView({ user }) {
       })
       const data = await res.json()
       const reply = res.ok ? (data.reply || 'Forgive me \u2014 I could not formulate a response.') : (data.detail || 'The Aegis service could not process that request.')
-      addMessage('assistant', reply)
+      // Extract hidden payment_link_id for auto-verify polling
+      const cleanReply = reply.replace(/\[payment_link_id:[^\]]+\]/, '').trim()
+      addMessage('assistant', cleanReply)
+      const payIdMatch = reply.match(/\[payment_link_id:([^\]]+)\]/)
+      if (payIdMatch) {
+        // Start polling for this AI-generated payment link
+        setTimeout(() => watchForInvoice(payIdMatch[1]), 2000)
+      }
       const invoiceMatch = reply.match(/payment-links\/([^/]+)\/invoice\/download/)
       if (invoiceMatch) await downloadInvoice(invoiceMatch[1])
     } catch {
@@ -654,24 +662,29 @@ function DashboardLayout({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState(user.role === 'merchant' ? 'dashboard' : 'shop')
 
   const renderPanel = () => {
-    if (user.role === 'merchant') {
-      switch (activeTab) {
-        case 'dashboard':
-          return <AdminDashboard initialTab="analytics" user={user} />
-        case 'audit-logs':
-          return <AdminDashboard initialTab="audit" user={user} />
-        case 'catalog':
-          return <CatalogManager />
-        case 'orders':
-          return <AdminDashboard initialTab="orders" user={user} />
-        default: return null
+    try {
+      if (user.role === 'merchant') {
+        switch (activeTab) {
+          case 'dashboard':
+            return <AdminDashboard initialTab="analytics" user={user} />
+          case 'audit-logs':
+            return <AdminDashboard initialTab="audit" user={user} />
+          case 'catalog':
+            return <CatalogManager />
+          case 'orders':
+            return <AdminDashboard initialTab="orders" user={user} />
+          default: return <AdminDashboard initialTab="analytics" user={user} />
+        }
       }
-    }
-    switch (activeTab) {
-      case 'shop': return <ShopView user={user} />
-      case 'orders': return <OrdersView user={user} />
-      case 'profile': return <PlaceholderPanel title="Your Profile" icon="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-      default: return null
+      switch (activeTab) {
+        case 'shop': return <ShopView user={user} />
+        case 'orders': return <OrdersView user={user} />
+        case 'profile': return <PlaceholderPanel title="Your Profile" icon="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        default: return <ShopView user={user} />
+      }
+    } catch (e) {
+      console.error('Panel error', e)
+      return <div className="p-8 text-center text-sm" style={{color:'var(--color-text-muted)'}}>Something went wrong - please refresh</div>
     }
   }
 
