@@ -177,10 +177,17 @@ def require_buyer(user: User = Depends(get_current_user)) -> User:
 
 
 def _safe_ai_reply(reply: str | None) -> str:
-    """Never allow a generative model to represent payment or an invoice as verified."""
-    if re.search(r"payment (has been )?verified|official invoice|fulfillment initiated|total paid", reply or "", re.IGNORECASE):
+    """Never allow a generative model to represent payment or an invoice as verified, or hallucinate payment links."""
+    if not reply:
+        return "I could not prepare a response."
+    # Block hallucinated payment links - only rzp.io links from generate_payment_link tool are allowed.
+    if re.search(r"purchase\.ailagya|ailagya\.live|checkout.*RB_|https?://[^\\s]*pay", reply, re.IGNORECASE):
+        # If it contains a fake checkout link but not a real rzp.io link from tool, block it.
+        if "rzp.io" not in reply or "ailagya" in reply.lower():
+            return "Payment link generation failed - please try the Buy button below or ask again for a specific product and price."
+    if re.search(r"payment (has been )?verified|official invoice|fulfillment initiated|total paid", reply, re.IGNORECASE):
         return "For security, payment status and invoices are confirmed only by Razorpay. Complete payment, then ask for your invoice."
-    return reply or "I could not prepare a response."
+    return reply
 
 
 def seed_data():
