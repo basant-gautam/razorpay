@@ -89,14 +89,15 @@ class PaymentLink(Base):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
-    # SQLite does not add model columns to an existing table automatically.
-    with engine.begin() as connection:
-        columns = {row[1] for row in connection.execute(text("PRAGMA table_info(products)"))}
-        if "max_discount" not in columns:
-            connection.execute(text("ALTER TABLE products ADD COLUMN max_discount INTEGER"))
-        payment_link_columns = {row[1] for row in connection.execute(text("PRAGMA table_info(payment_links)"))}
-        if payment_link_columns and "buyer_username" not in payment_link_columns:
-            connection.execute(text("ALTER TABLE payment_links ADD COLUMN buyer_username TEXT"))
+    # Handle SQLite auto-migration; Postgres already has correct schema via create_all.
+    if DATABASE_URL.startswith("sqlite"):
+        with engine.begin() as connection:
+            columns = {row[1] for row in connection.execute(text("PRAGMA table_info(products)"))}
+            if "max_discount" not in columns:
+                connection.execute(text("ALTER TABLE products ADD COLUMN max_discount INTEGER"))
+            payment_link_columns = {row[1] for row in connection.execute(text("PRAGMA table_info(payment_links)"))}
+            if payment_link_columns and "buyer_username" not in payment_link_columns:
+                connection.execute(text("ALTER TABLE payment_links ADD COLUMN buyer_username TEXT"))
     seed_data()
     yield
 
