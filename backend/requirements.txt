@@ -1,0 +1,7 @@
+fastapi==0.141.1
+uvicorn==0.52.4
+razorpay==2.0.1
+python-dotenv==1.0.0
+sqlalchemy==2.0.52
+openai==3.7.0
+python-multipart==0.0.32
