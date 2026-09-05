@@ -363,9 +363,6 @@ function Sidebar({ user, activeTab, onTabChange, onLogout, onClose }) {
   ]
   const items = user?.role === 'merchant' ? merchantItems : buyerItems
 
-  // Don't lock body scroll - fixed sidebar already overlays without needing overflow hidden
-
-  if (!user) return null
   return (
     <>
       <div className="fixed inset-0 backdrop-blur-sm" style={{ background: 'rgba(5, 3, 12, 0.75)', zIndex: 40 }} onClick={onClose} aria-hidden="true" />
@@ -384,10 +381,10 @@ function Sidebar({ user, activeTab, onTabChange, onLogout, onClose }) {
             <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shadow-lg"
               style={{
                 fontFamily: 'var(--font-serif)',
-                background: (user?.role === 'merchant')
+                background: user?.role === 'merchant'
                   ? 'linear-gradient(135deg, #4a1a30, #2a1020)'
                   : 'linear-gradient(135deg, #2a1a3a, #1a1030)',
-                color: (user?.role === 'merchant') ? 'var(--color-copper)' : 'var(--color-gold)',
+                color: user?.role === 'merchant' ? 'var(--color-copper)' : 'var(--color-gold)',
               }}
               aria-hidden="true">
               {(user?.username?.[0] || 'U').toUpperCase()}
@@ -416,7 +413,7 @@ function Sidebar({ user, activeTab, onTabChange, onLogout, onClose }) {
           {items.map(item => (
             <button
               key={item.id}
-              onClick={() => { onTabChange(item.id); setTimeout(onClose, 50) }}
+              onClick={() => { onTabChange(item.id); onClose() }}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200"
               style={{
                 fontFamily: 'var(--font-serif)',
@@ -655,7 +652,7 @@ function PlaceholderPanel({ title, icon }) {
 
 function DashboardLayout({ user, onLogout }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState(user?.role === 'merchant' ? 'dashboard' : 'shop')
+  const [activeTab, setActiveTab] = useState(user.role === 'merchant' ? 'dashboard' : 'shop')
 
   const renderPanel = () => {
     try {
@@ -713,7 +710,7 @@ function DashboardLayout({ user, onLogout }) {
             </div>
             <div className="min-w-0">
               <h1 className="text-sm font-semibold tracking-wide truncate" style={{ fontFamily: 'var(--font-serif)', color: 'var(--color-cream)' }}>
-                Aegis AI <span className="text-[10px] opacity-50">v1.2</span>
+                Aegis AI
               </h1>
               <p className="text-xs tracking-widest uppercase truncate" style={{ color: 'var(--color-gold-dark)', fontFamily: 'var(--font-serif)' }}>
                 {tabLabel()}
