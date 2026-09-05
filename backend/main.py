@@ -731,13 +731,47 @@ async def razorpay_webhook(request: Request, db: Session = Depends(get_db)):
 
 
 @app.get("/api/orders/{buyer_username}")
-def get_orders(buyer_username: str, db: Session = Depends(get_db)):
+def get_orders(buyer_username: str, db: Session = Depends(get_db), buyer: User = Depends(get_current_user)):
+    # Reconcile pending orders before returning so dashboard shows latest status.
+    pending = db.query(PaymentLink).filter(PaymentLink.buyer_username == buyer_username, PaymentLink.status != "paid").all()
+    for link in pending:
+        _get_invoice_for_payment_link(link, db)
     links = db.query(PaymentLink).filter(PaymentLink.buyer_username == buyer_username).order_by(PaymentLink.created_at.desc()).all()
+    products = {p.id: p.name for p in db.query(Product).all()}
     return {"orders": [
-        {"payment_link_id": link.razorpay_link_id, "product_id": link.product_id, "amount": link.amount,
-         "status": link.status, "invoice_number": link.invoice_number, "paid_at": link.paid_at.isoformat() if link.paid_at else None}
+        {"payment_link_id": link.razorpay_link_id, "product_id": link.product_id, "product_name": products.get(link.product_id, "Product"), "amount": link.amount,
+         "status": link.status, "invoice_number": link.invoice_number, "paid_at": link.paid_at.isoformat() if link.paid_at else None, "short_url": link.short_url}
         for link in links
     ]}
+
+
+@app.get("/api/admin/orders")
+def get_all_orders(db: Session = Depends(get_db), buyer: User = Depends(get_current_user)):
+    if buyer.role != "merchant":
+        raise HTTPException(status_code=403, detail="Merchant access required")
+    pending = db.query(PaymentLink).filter(PaymentLink.status != "paid").order_by(PaymentLink.created_at.desc()).limit(50).all()
+    for link in pending:
+        _get_invoice_for_payment_link(link, db)
+    links = db.query(PaymentLink).order_by(PaymentLink.created_at.desc()).limit(100).all()
+    products = {p.id: p.name for p in db.query(Product).all()}
+    return {"orders": [
+        {"payment_link_id": link.razorpay_link_id, "product_id": link.product_id, "product_name": products.get(link.product_id, "Product"), "amount": link.amount,
+         "status": link.status, "invoice_number": link.invoice_number, "paid_at": link.paid_at.isoformat() if link.paid_at else None, "buyer_username": link.buyer_username, "short_url": link.short_url}
+        for link in links
+    ]}
+
+
+@app.post("/api/payment-links/{payment_link_id}/verify")
+def verify_payment(payment_link_id: str, db: Session = Depends(get_db), buyer: User = Depends(get_current_user)):
+    q = db.query(PaymentLink).filter(PaymentLink.razorpay_link_id == payment_link_id)
+    # Buyer sees own links, merchant sees all.
+    if buyer.role == "buyer":
+        q = q.filter(PaymentLink.buyer_username == buyer.username)
+    payment_link = q.first()
+    if payment_link is None:
+        raise HTTPException(status_code=404, detail="Payment link not found")
+    result = _get_invoice_for_payment_link(payment_link, db)
+    return result
 
 
 @app.get("/api/admin/audit-logs")

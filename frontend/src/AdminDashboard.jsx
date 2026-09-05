@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { BarChart2, Settings, Shield, TrendingUp, Link as LinkIcon, Percent, Save, Check } from 'lucide-react'
+import { BarChart2, Settings, Shield, TrendingUp, Link as LinkIcon, Percent, Save, Check, Receipt } from 'lucide-react'
+import OrdersView from './OrdersView'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -23,8 +24,8 @@ function getActionStyle(action) {
   }
 }
 
-export default function AdminDashboard({ initialTab = 'analytics' }) {
-  const [activeTab, setActiveTab] = useState(initialTab) // 'analytics', 'rules', 'audit'
+export default function AdminDashboard({ initialTab = 'analytics', user }) {
+  const [activeTab, setActiveTab] = useState(initialTab) // 'analytics', 'rules', 'audit', 'orders'
 
   // Analytics Data
   const [analytics, setAnalytics] = useState(null)
@@ -168,6 +169,12 @@ export default function AdminDashboard({ initialTab = 'analytics' }) {
             onClick={() => setActiveTab('audit')}
           >
             <Shield size={16} /> Audit Ledger
+          </button>
+          <button 
+            className={`pb-3 px-2 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 'orders' ? 'border-b-2 border-[var(--color-gold)] text-[var(--color-gold-light)]' : 'text-[var(--color-text-dim)] hover:text-[var(--color-cream)]'}`}
+            onClick={() => setActiveTab('orders')}
+          >
+            <Receipt size={16} /> Orders & Invoices
           </button>
         </div>
       </div>
@@ -326,6 +333,11 @@ export default function AdminDashboard({ initialTab = 'analytics' }) {
               </div>
 
             </div>
+          )}
+
+          {/* TAB: ORDERS */}
+          {activeTab === 'orders' && (
+            <OrdersView user={user || { username: 'admin', role: 'merchant', token: localStorage.getItem('token') || '' }} />
           )}
 
           {/* TAB: AUDIT LEDGER */}
