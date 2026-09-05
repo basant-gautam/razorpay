@@ -5,3 +5,4 @@ python-dotenv==1.0.0
 sqlalchemy==2.0.52
 openai==3.7.0
 python-multipart==0.0.32
+psycopg2-binary==2.9.11
