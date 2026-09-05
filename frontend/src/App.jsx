@@ -416,7 +416,7 @@ function Sidebar({ user, activeTab, onTabChange, onLogout, onClose }) {
           {items.map(item => (
             <button
               key={item.id}
-              onClick={() => { onTabChange(item.id); onClose() }}
+              onClick={() => { onTabChange(item.id); setTimeout(onClose, 50) }}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200"
               style={{
                 fontFamily: 'var(--font-serif)',
@@ -655,7 +655,12 @@ function PlaceholderPanel({ title, icon }) {
 
 function DashboardLayout({ user, onLogout }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState(user.role === 'merchant' ? 'dashboard' : 'shop')
+  const [activeTab, setActiveTab] = useState(user?.role === 'merchant' ? 'dashboard' : 'shop')
+  // Reset to valid tab if role mismatch after long chat
+  useEffect(() => {
+    if (user?.role === 'buyer' && !['shop','orders','profile'].includes(activeTab)) setActiveTab('shop')
+    if (user?.role === 'merchant' && !['dashboard','orders','audit-logs','catalog'].includes(activeTab)) setActiveTab('dashboard')
+  }, [user, activeTab])
 
   const renderPanel = () => {
     try {
@@ -713,7 +718,7 @@ function DashboardLayout({ user, onLogout }) {
             </div>
             <div className="min-w-0">
               <h1 className="text-sm font-semibold tracking-wide truncate" style={{ fontFamily: 'var(--font-serif)', color: 'var(--color-cream)' }}>
-                Aegis AI
+                Aegis AI <span className="text-[10px] opacity-50">v1.2</span>
               </h1>
               <p className="text-xs tracking-widest uppercase truncate" style={{ color: 'var(--color-gold-dark)', fontFamily: 'var(--font-serif)' }}>
                 {tabLabel()}
