@@ -5,7 +5,7 @@ import OrdersView from './OrdersView'
 import './design-tokens.css'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-const RZP_LINK_RE = /https:\/\/rzp\.io\/[^\s]+/
+const RZP_LINK_RE = /https:\/\/rzp\.io\/[^\s\)\]>,]+/
 
 async function fetchWithRetry(url, options) {
   try {
@@ -18,18 +18,16 @@ async function fetchWithRetry(url, options) {
 }
 
 function parseMessage(content) {
+  const m = content.match(RZP_LINK_RE)
+  if (!m) return [{ text: content }]
+  const link = m[0]
+  const idx = content.indexOf(link)
   const parts = []
-  const match = content.match(RZP_LINK_RE)
-  if (match) {
-    const idx = content.indexOf(match[0])
-    if (idx > 0) parts.push({ text: content.slice(0, idx) })
-    parts.push({ link: match[0] })
-    if (idx + match[0].length < content.length) {
-      parts.push({ text: content.slice(idx + match[0].length) })
-    }
-    return parts
-  }
-  return [{ text: content }]
+  if (idx > 0) parts.push({ text: content.slice(0, idx) })
+  parts.push({ link })
+  const tail = content.slice(idx + link.length)
+  if (tail) parts.push({ text: tail })
+  return parts
 }
 
 function OrnamentalDivider() {
