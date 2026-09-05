@@ -813,10 +813,34 @@ def get_audit(db: Session = Depends(get_db)):
 
 @app.get("/api/admin/analytics")
 def get_analytics(db: Session = Depends(get_db)):
-    payment_links = db.query(AIAuditLog).filter(AIAuditLog.action_taken == "Payment Link Generated").count()
+    # Webhooks are immediate in production; this reconciliation also covers
+    # local development or a webhook that was temporarily unavailable.
+    pending_links = db.query(PaymentLink).filter(PaymentLink.status != "paid").order_by(PaymentLink.created_at.desc()).limit(50).all()
+    for payment_link in pending_links:
+        _get_invoice_for_payment_link(payment_link, db)
+
+    paid_links = db.query(PaymentLink).filter(PaymentLink.status == "paid").all()
+    total_revenue = sum(link.amount for link in paid_links)
+    now = datetime.now(timezone.utc).date()
+    revenue_by_day = {}
+    for link in paid_links:
+        if link.paid_at:
+            day = link.paid_at.astimezone(timezone.utc).date()
+            revenue_by_day[day] = revenue_by_day.get(day, 0) + link.amount
+    time_series = [
+        {"date": (now - timedelta(days=offset)).strftime("%d %b"), "revenue": revenue_by_day.get(now - timedelta(days=offset), 0)}
+        for offset in range(6, -1, -1)
+    ]
+    discount_logs = db.query(AIAuditLog).filter(AIAuditLog.action_taken == "Discount Approved").all()
+    discounts = [int(match.group(1)) for log in discount_logs for match in [re.search(r"(\d+)%", log.ai_reasoning)] if match]
     return {
-        "metrics": {"total_revenue": 0.0, "average_discount_given": 0.0, "total_links_generated": payment_links},
-        "time_series": [],
+        "metrics": {
+            "total_revenue": float(total_revenue),
+            "average_discount_given": round(sum(discounts) / len(discounts), 1) if discounts else 0.0,
+            "total_links_generated": db.query(PaymentLink).count(),
+            "paid_orders": len(paid_links),
+        },
+        "time_series": time_series,
     }
 
 

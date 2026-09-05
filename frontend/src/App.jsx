@@ -237,7 +237,7 @@ function AuthScreen({ role, onSuccess, onBack }) {
         body: JSON.stringify(body),
       })
       const data = await res.json()
-      if (res.ok) { onSuccess(data.user) }
+      if (res.ok && data.token) { onSuccess({ ...data.user, token: data.token }) }
       else { setError(data.detail || 'Authentication failed') }
     } catch { setError('Cannot reach the Aegis server') }
     setLoading(false)
@@ -476,19 +476,29 @@ function ShopView({ user }) {
     setMessages(prev => [...prev, { role, content }])
   }
 
+  const authHeaders = { Authorization: `Bearer ${user.token}` }
+
+  const downloadInvoice = async (paymentLinkId, invoiceNumber = 'invoice') => {
+    const res = await fetch(`${API}/api/payment-links/${paymentLinkId}/invoice/download`, { headers: authHeaders })
+    if (!res.ok) throw new Error('Invoice download failed')
+    const blob = await res.blob()
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `${invoiceNumber}.pdf`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(link.href)
+  }
+
   const watchForInvoice = async (paymentLinkId, attempts = 0) => {
     if (attempts >= 90) return
     try {
-      const res = await fetch(`${API}/api/payment-links/${paymentLinkId}/invoice`)
+      const res = await fetch(`${API}/api/payment-links/${paymentLinkId}/invoice`, { headers: authHeaders })
       if (res.ok) {
         const invoice = await res.json()
         addMessage('assistant', `Payment received. Invoice ${invoice.invoice_number} is ready — downloading your PDF now.`)
-        const download = document.createElement('a')
-        download.href = `${API}/api/payment-links/${paymentLinkId}/invoice/download`
-        download.download = `${invoice.invoice_number}.pdf`
-        document.body.appendChild(download)
-        download.click()
-        download.remove()
+        await downloadInvoice(paymentLinkId, invoice.invoice_number)
         return
       }
     } catch { /* Keep checking while the buyer completes Razorpay checkout. */ }
@@ -513,11 +523,14 @@ function ShopView({ user }) {
     try {
       const res = await fetchWithRetry(`${API}/api/agent/chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({ buyer_message: userMessage, history, buyer_username: user.username }),
       })
       const data = await res.json()
-      addMessage('assistant', res.ok ? (data.reply || 'Forgive me \u2014 I could not formulate a response.') : (data.detail || 'The Aegis service could not process that request.'))
+      const reply = res.ok ? (data.reply || 'Forgive me \u2014 I could not formulate a response.') : (data.detail || 'The Aegis service could not process that request.')
+      addMessage('assistant', reply)
+      const invoiceMatch = reply.match(/payment-links\/([^/]+)\/invoice\/download/)
+      if (invoiceMatch) await downloadInvoice(invoiceMatch[1])
     } catch {
       addMessage('assistant', 'Aegis is temporarily reconnecting. Please send your message once more in a moment.')
     }
@@ -530,7 +543,7 @@ function ShopView({ user }) {
     try {
       const res = await fetch(`${API}/api/agent/checkout`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({ product_id: product.id, final_discounted_price: product.price, buyer_username: user.username }),
       })
       const data = await res.json()
@@ -642,9 +655,9 @@ function DashboardLayout({ user, onLogout }) {
     if (user.role === 'merchant') {
       switch (activeTab) {
         case 'dashboard':
-          return <PlaceholderPanel title="Merchant Dashboard" icon="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          return <AdminDashboard initialTab="analytics" />
         case 'audit-logs':
-          return <AdminDashboard onLogout={onLogout} />
+          return <AdminDashboard initialTab="audit" />
         case 'catalog':
           return <CatalogManager />
         default: return null

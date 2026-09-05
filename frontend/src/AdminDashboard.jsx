@@ -23,8 +23,8 @@ function getActionStyle(action) {
   }
 }
 
-export default function AdminDashboard({ onLogout }) {
-  const [activeTab, setActiveTab] = useState('analytics') // 'analytics', 'rules', 'audit'
+export default function AdminDashboard({ initialTab = 'analytics' }) {
+  const [activeTab, setActiveTab] = useState(initialTab) // 'analytics', 'rules', 'audit'
 
   // Analytics Data
   const [analytics, setAnalytics] = useState(null)
@@ -191,7 +191,7 @@ export default function AdminDashboard({ onLogout }) {
                         <TrendingUp size={20} />
                         <h3 className="font-serif font-semibold">Total Revenue</h3>
                       </div>
-                      <p className="text-3xl font-bold tracking-tight">${analytics.metrics.total_revenue.toFixed(2)}</p>
+                      <p className="text-3xl font-bold tracking-tight">₹{analytics.metrics.total_revenue.toFixed(2)}</p>
                     </div>
                     <div className="bg-[var(--color-surface)] border border-[var(--color-border)] p-5 rounded-xl shadow-card">
                       <div className="flex items-center gap-3 text-blue-400 mb-2">
@@ -219,7 +219,7 @@ export default function AdminDashboard({ onLogout }) {
                         <LineChart data={analytics.time_series} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                           <XAxis dataKey="date" stroke="rgba(255,255,255,0.4)" fontSize={12} tickLine={false} axisLine={false} />
-                          <YAxis stroke="rgba(255,255,255,0.4)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
+                          <YAxis stroke="rgba(255,255,255,0.4)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `₹${v}`} />
                           <Tooltip 
                             contentStyle={{ backgroundColor: 'var(--color-surface-alt)', border: '1px solid var(--color-border)', borderRadius: '8px' }}
                             itemStyle={{ color: 'var(--color-gold-light)' }}
